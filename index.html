@@ -1,239 +1,201 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>arsenobetaine</title>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100vh;
-            overflow: hidden;
-        }
-        .plasma-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-    </style>
-</head>
-<body>
-    <div id="plasma-container" class="plasma-container"></div>
-    <script src="https://unpkg.com/ogl@0.0.90/dist/ogl.js"></script>
-    <script>
-        // Configuration parameters (customize as needed)
-        const config = {
-            color: '#ff00ff', // Custom color (hex)
-            speed: 1,         // Animation speed
-            direction: 'forward', // 'forward', 'reverse', or 'pingpong'
-            scale: 1,         // Scale of the effect
-            opacity: 1,       // Opacity of the effect
-            mouseInteractive: true // Enable/disable mouse interaction
-        };
-
-        // Hex to RGB conversion
-        function hexToRgb(hex) {
-            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            if (!result) return [1, 0.5, 0.2];
-            return [
-                parseInt(result[1], 16) / 255,
-                parseInt(result[2], 16) / 255,
-                parseInt(result[3], 16) / 255
-            ];
-        }
-
-        // Vertex shader
-        const vertex = `#version 300 es
-        precision highp float;
-        in vec2 position;
-        in vec2 uv;
-        out vec2 vUv;
-        void main() {
-            vUv = uv;
-            gl_Position = vec4(position, 0.0, 1.0);
-        }
-        `;
-
-        // Fragment shader
-        const fragment = `#version 300 es
-        precision highp float;
-        uniform vec2 iResolution;
-        uniform float iTime;
-        uniform vec3 uCustomColor;
-        uniform float uUseCustomColor;
-        uniform float uSpeed;
-        uniform float uDirection;
-        uniform float uScale;
-        uniform float uOpacity;
-        uniform vec2 uMouse;
-        uniform float uMouseInteractive;
-        out vec4 fragColor;
-
-        void mainImage(out vec4 o, vec2 C) {
-            vec2 center = iResolution.xy * 0.5;
-            C = (C - center) / uScale + center;
-            
-            vec2 mouseOffset = (uMouse - center) * 0.0002;
-            C += mouseOffset * length(C - center) * step(0.5, uMouseInteractive);
-            
-            float i, d, z, T = iTime * uSpeed * uDirection;
-            vec3 O, p, S;
-
-            for (vec2 r = iResolution.xy, Q; ++i < 60.; O += o.w/d*o.xyz) {
-                p = z*normalize(vec3(C-.5*r,r.y)); 
-                p.z -= 4.; 
-                S = p;
-                d = p.y-T;
-                
-                p.x += .4*(1.+p.y)*sin(d + p.x*0.1)*cos(.34*d + p.x*0.05); 
-                Q = p.xz *= mat2(cos(p.y+vec4(0,11,33,0)-T)); 
-                z+= d = abs(sqrt(length(Q*Q)) - .25*(5.+S.y))/3.+8e-4; 
-                o = 1.+sin(S.y+p.z*.5+S.z-length(S-p)+vec4(2,1,0,8));
-            }
-            
-            o.xyz = tanh(O/1e4);
-        }
-
-        bool finite1(float x) { return !(isnan(x) || isinf(x)); }
-        vec3 sanitize(vec3 c) {
-            return vec3(
-                finite1(c.r) ? c.r : 0.0,
-                finite1(c.g) ? c.g : 0.0,
-                finite1(c.b) ? c.b : 0.0
-            );
-        }
-
-        void main() {
-            vec4 o = vec4(0.0);
-            mainImage(o, gl_FragCoord.xy);
-            vec3 rgb = sanitize(o.rgb);
-            
-            float intensity = (rgb.r + rgb.g + rgb.b) / 3.0;
-            vec3 customColor = intensity * uCustomColor;
-            vec3 finalColor = mix(rgb, customColor, step(0.5, uUseCustomColor));
-            
-            float alpha = length(rgb) * uOpacity;
-            fragColor = vec4(finalColor, alpha);
-        }`;
-
-        // Initialize the plasma effect
-        function initPlasma() {
-            const container = document.getElementById('plasma-container');
-            if (!container) return;
-
-            // Set up configuration
-            const useCustomColor = config.color ? 1.0 : 0.0;
-            const customColorRgb = config.color ? hexToRgb(config.color) : [1, 1, 1];
-            const directionMultiplier = config.direction === 'reverse' ? -1.0 : 1.0;
-
-            // Initialize WebGL renderer
-            const renderer = new OGL.Renderer({
-                webgl: 2,
-                alpha: true,
-                antialias: false,
-                dpr: Math.min(window.devicePixelRatio || 1, 2)
-            });
-            const gl = renderer.gl;
-            const canvas = gl.canvas;
-            canvas.style.display = 'block';
-            canvas.style.width = '100%';
-            canvas.style.height = '100%';
-            container.appendChild(canvas);
-
-            // Create geometry and program
-            const geometry = new OGL.Triangle(gl);
-            const program = new OGL.Program(gl, {
-                vertex: vertex,
-                fragment: fragment,
-                uniforms: {
-                    iTime: { value: 0 },
-                    iResolution: { value: new Float32Array([1, 1]) },
-                    uCustomColor: { value: new Float32Array(customColorRgb) },
-                    uUseCustomColor: { value: useCustomColor },
-                    uSpeed: { value: config.speed * 0.4 },
-                    uDirection: { value: directionMultiplier },
-                    uScale: { value: config.scale },
-                    uOpacity: { value: config.opacity },
-                    uMouse: { value: new Float32Array([0, 0]) },
-                    uMouseInteractive: { value: config.mouseInteractive ? 1.0 : 0.0 }
-                }
-            });
-
-            const mesh = new OGL.Mesh(gl, { geometry, program });
-
-            // Mouse interaction
-            const mousePos = { x: 0, y: 0 };
-            function handleMouseMove(e) {
-                if (!config.mouseInteractive) return;
-                const rect = container.getBoundingClientRect();
-                mousePos.x = e.clientX - rect.left;
-                mousePos.y = e.clientY - rect.top;
-                const mouseUniform = program.uniforms.uMouse.value;
-                mouseUniform[0] = mousePos.x;
-                mouseUniform[1] = mousePos.y;
-            }
-
-            if (config.mouseInteractive) {
-                container.addEventListener('mousemove', handleMouseMove);
-            }
-
-            // Resize handling
-            function setSize() {
-                const rect = container.getBoundingClientRect();
-                const width = Math.max(1, Math.floor(rect.width));
-                const height = Math.max(1, Math.floor(rect.height));
-                renderer.setSize(width, height);
-                const res = program.uniforms.iResolution.value;
-                res[0] = gl.drawingBufferWidth;
-                res[1] = gl.drawingBufferHeight;
-            }
-
-            const ro = new ResizeObserver(setSize);
-            ro.observe(container);
-            setSize();
-
-            // Animation loop
-            let raf = 0;
-            const t0 = performance.now();
-            function loop(t) {
-                let timeValue = (t - t0) * 0.001;
-
-                if (config.direction === 'pingpong') {
-                    const cycle = Math.sin(timeValue * 0.5) * directionMultiplier;
-                    program.uniforms.uDirection.value = cycle;
-                }
-
-                program.uniforms.iTime.value = timeValue;
-                renderer.render({ scene: mesh });
-                raf = requestAnimationFrame(loop);
-            }
-            raf = requestAnimationFrame(loop);
-
-            // Cleanup
-            window.addEventListener('unload', () => {
-                cancelAnimationFrame(raf);
-                ro.disconnect();
-                if (config.mouseInteractive) {
-                    container.removeEventListener('mousemove', handleMouseMove);
-                }
-                try {
-                    container.removeChild(canvas);
-                } catch {
-                    console.warn('Canvas already removed');
-                }
-            });
-        }
-
-        // Run the initialization
-        initPlasma();
-    </script>
-</body>
+<html lang="en" dir="ltr">
+   <head>
+      <title>arsenobetaine</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+      <meta name="description" content="arsenobetaine">
+   </head>
+   <body>
+      <div class="content">
+         <h2 class="text" data-text="arsenobetaine">
+            arsenobetaine
+         </h2>
+      </div>
+      <a rel="me" href="https://c.im/@soleimani">Mastodon</a>
+   </body>
 </html>
+
+<style>
+  @import url('https://fonts.googleapis.com/css?family=Poppins:400,500,600,700&display=swap');
+*{
+  margin: 0;
+  padding: 0;
+  font-family: 'Poppins', sans-serif;
+}
+body, html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: black;
+}
+.content{
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.content .text{
+  position: relative;
+  color: #fff;
+  font-weight: 700;
+  font-size: 45px;
+  transform: scale(2);
+  padding: 30px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.content .text:before,
+.content .text:after {
+  padding: 30px;
+  color: white;
+  content: attr(data-text);
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: black;
+  overflow: hidden;
+  top: 0;
+}
+.content .text:before{
+  left: 3px;
+  text-shadow: -2px 0 red;
+  animation: glitch-1 2s linear infinite reverse;
+}
+.content .text:after{
+  left: -3px;
+  text-shadow: -2px 0 blue;
+  animation: glitch-2 2s linear infinite reverse;
+}
+@keyframes glitch-1 {
+  0% {
+    clip: rect(132px, auto, 101px, 30px);
+  }
+  5% {
+    clip: rect(17px, auto, 94px, 30px);
+  }
+  10% {
+    clip: rect(40px, auto, 66px, 30px);
+  }
+  15% {
+    clip: rect(87px, auto, 82px, 30px);
+  }
+  20% {
+    clip: rect(137px, auto, 61px, 30px);
+  }
+  25% {
+    clip: rect(34px, auto, 14px, 30px);
+  }
+  30% {
+    clip: rect(133px, auto, 74px, 30px);
+  }
+  35% {
+    clip: rect(76px, auto, 107px, 30px);
+  }
+  40% {
+    clip: rect(59px, auto, 130px, 30px);
+  }
+  45% {
+    clip: rect(29px, auto, 84px, 30px);
+  }
+  50% {
+    clip: rect(22px, auto, 67px, 30px);
+  }
+  55% {
+    clip: rect(67px, auto, 62px, 30px);
+  }
+  60% {
+    clip: rect(10px, auto, 105px, 30px);
+  }
+  65% {
+    clip: rect(78px, auto, 115px, 30px);
+  }
+  70% {
+    clip: rect(105px, auto, 13px, 30px);
+  }
+  75% {
+    clip: rect(15px, auto, 75px, 30px);
+  }
+  80% {
+    clip: rect(66px, auto, 39px, 30px);
+  }
+  85% {
+    clip: rect(133px, auto, 73px, 30px);
+  }
+  90% {
+    clip: rect(36px, auto, 128px, 30px);
+  }
+  95% {
+    clip: rect(68px, auto, 103px, 30px);
+  }
+  100% {
+    clip: rect(14px, auto, 100px, 30px);
+  }
+}
+@keyframes glitch-2 {
+  0% {
+    clip: rect(129px, auto, 36px, 30px);
+  }
+  5% {
+    clip: rect(36px, auto, 4px, 30px);
+  }
+  10% {
+    clip: rect(85px, auto, 66px, 30px);
+  }
+  15% {
+    clip: rect(91px, auto, 91px, 30px);
+  }
+  20% {
+    clip: rect(148px, auto, 138px, 30px);
+  }
+  25% {
+    clip: rect(38px, auto, 122px, 30px);
+  }
+  30% {
+    clip: rect(69px, auto, 54px, 30px);
+  }
+  35% {
+    clip: rect(98px, auto, 71px, 30px);
+  }
+  40% {
+    clip: rect(146px, auto, 34px, 30px);
+  }
+  45% {
+    clip: rect(134px, auto, 43px, 30px);
+  }
+  50% {
+    clip: rect(102px, auto, 80px, 30px);
+  }
+  55% {
+    clip: rect(119px, auto, 44px, 30px);
+  }
+  60% {
+    clip: rect(106px, auto, 99px, 30px);
+  }
+  65% {
+    clip: rect(141px, auto, 74px, 30px);
+  }
+  70% {
+    clip: rect(20px, auto, 78px, 30px);
+  }
+  75% {
+    clip: rect(133px, auto, 79px, 30px);
+  }
+  80% {
+    clip: rect(78px, auto, 52px, 30px);
+  }
+  85% {
+    clip: rect(35px, auto, 39px, 30px);
+  }
+  90% {
+    clip: rect(67px, auto, 70px, 30px);
+  }
+  95% {
+    clip: rect(71px, auto, 103px, 30px);
+  }
+  100% {
+    clip: rect(83px, auto, 40px, 30px);
+  }
+}
+</style>
