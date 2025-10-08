@@ -1,898 +1,201 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Encrypted Photo Manager</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 30px;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .auth-container, .main-app {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-
-        .auth-container {
-            max-width: 400px;
-            margin: 50px auto;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #555;
-        }
-
-        input[type="password"], input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
-
-        input[type="password"]:focus, input[type="text"]:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: transform 0.2s;
-            width: 100%;
-        }
-
-        button:hover {
-            transform: translateY(-2px);
-        }
-
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .controls button {
-            flex: 1;
-            min-width: 150px;
-        }
-
-        .album-selector {
-            margin-bottom: 20px;
-        }
-
-        select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            font-size: 16px;
-        }
-
-        .photo-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .photo-item {
-            position: relative;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
-            cursor: pointer;
-        }
-
-        .photo-item:hover {
-            transform: scale(1.05);
-        }
-
-        .photo-item img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-        }
-
-        .photo-item .delete-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(255,0,0,0.8);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            cursor: pointer;
-            font-size: 18px;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.9);
-        }
-
-        .modal-content {
-            position: relative;
-            margin: 5% auto;
-            max-width: 90%;
-            max-height: 80vh;
-        }
-
-        .modal-content img {
-            width: 100%;
-            height: auto;
-            border-radius: 10px;
-        }
-
-        .close {
-            position: absolute;
-            top: 20px;
-            right: 40px;
-            color: white;
-            font-size: 40px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-
-        .error {
-            background: #fee;
-            color: #c33;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-
-        .success {
-            background: #efe;
-            color: #3c3;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        .file-label {
-            display: inline-block;
-            padding: 12px 24px;
-            background: #667eea;
-            color: white;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .file-label:hover {
-            background: #5a6fd8;
-        }
-
-        .stats {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-        }
-
-        .stat-item {
-            text-align: center;
-        }
-
-        .stat-number {
-            font-size: 24px;
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .stat-label {
-            color: #666;
-            font-size: 14px;
-        }
-
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .photo-grid {
-                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            }
-            
-            .controls {
-                flex-direction: column;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🔐 Encrypted Photo Manager</h1>
-            <p>Your personal photos, secured with military-grade encryption</p>
-        </div>
-
-        <!-- Authentication Section -->
-        <div id="authSection" class="auth-container">
-            <h2>Secure Login</h2>
-            <div id="authMessage"></div>
-            <div class="form-group">
-                <label for="password">Master Password:</label>
-                <input type="password" id="password" placeholder="Enter your secure password">
-            </div>
-            <button onclick="authenticate()">Unlock Photos</button>
-            <p style="text-align: center; margin-top: 20px; color: #666;">
-                <small>🔒 Your password is never stored - it's used to derive your encryption key</small>
-            </p>
-        </div>
-
-        <!-- Main App Section -->
-        <div id="mainApp" class="main-app" style="display: none;">
-            <div class="stats">
-                <div class="stat-item">
-                    <div class="stat-number" id="totalPhotos">0</div>
-                    <div class="stat-label">Total Photos</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="totalAlbums">0</div>
-                    <div class="stat-label">Albums</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="storageUsed">0 MB</div>
-                    <div class="stat-label">Storage Used</div>
-                </div>
-            </div>
-
-            <div class="controls">
-                <label for="photoInput" class="file-label">
-                    📷 Add Photos
-                </label>
-                <input type="file" id="photoInput" multiple accept="image/*" onchange="handlePhotoUpload(event)">
-                
-                <button onclick="createAlbum()">📁 Create Album</button>
-                <button onclick="exportPhotos()">💾 Export All</button>
-                <button onclick="logout()">🔒 Lock Vault</button>
-            </div>
-
-            <div class="album-selector">
-                <label for="albumSelect">Select Album:</label>
-                <select id="albumSelect" onchange="loadPhotos()">
-                    <option value="all">All Photos</option>
-                </select>
-            </div>
-
-            <div id="message"></div>
-            <div id="photoGrid" class="photo-grid">
-                <div class="loading">Loading your encrypted photos...</div>
-            </div>
-        </div>
-
-        <!-- Photo Modal -->
-        <div id="photoModal" class="modal">
-            <span class="close" onclick="closeModal()">&times;</span>
-            <div class="modal-content">
-                <img id="modalImage" src="" alt="Full size photo">
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Encryption utilities
-        class EncryptionManager {
-            constructor() {
-                this.key = null;
-            }
-
-            async deriveKey(password, salt) {
-                const encoder = new TextEncoder();
-                const passwordBuffer = encoder.encode(password);
-                
-                const keyMaterial = await crypto.subtle.importKey(
-                    'raw',
-                    passwordBuffer,
-                    { name: 'PBKDF2' },
-                    false,
-                    ['deriveKey']
-                );
-
-                return await crypto.subtle.deriveKey(
-                    {
-                        name: 'PBKDF2',
-                        salt: salt,
-                        iterations: 100000,
-                        hash: 'SHA-256'
-                    },
-                    keyMaterial,
-                    { name: 'AES-GCM', length: 256 },
-                    false,
-                    ['encrypt', 'decrypt']
-                );
-            }
-
-            async encryptData(data) {
-                const salt = crypto.getRandomValues(new Uint8Array(16));
-                const iv = crypto.getRandomValues(new Uint8Array(12));
-                
-                if (!this.key) {
-                    throw new Error('No encryption key available');
-                }
-
-                const encrypted = await crypto.subtle.encrypt(
-                    { name: 'AES-GCM', iv: iv },
-                    this.key,
-                    data
-                );
-
-                const result = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
-                result.set(salt, 0);
-                result.set(iv, salt.length);
-                result.set(new Uint8Array(encrypted), salt.length + iv.length);
-
-                return result;
-            }
-
-            async decryptData(encryptedData) {
-                const salt = encryptedData.slice(0, 16);
-                const iv = encryptedData.slice(16, 28);
-                const data = encryptedData.slice(28);
-
-                if (!this.key) {
-                    throw new Error('No encryption key available');
-                }
-
-                return await crypto.subtle.decrypt(
-                    { name: 'AES-GCM', iv: iv },
-                    this.key,
-                    data
-                );
-            }
-
-            setKey(key) {
-                this.key = key;
-            }
-        }
-
-        // Database manager
-        class DatabaseManager {
-            constructor() {
-                this.db = null;
-                this.dbName = 'EncryptedPhotoManager';
-                this.version = 1;
-            }
-
-            async init() {
-                return new Promise((resolve, reject) => {
-                    const request = indexedDB.open(this.dbName, this.version);
-
-                    request.onerror = () => reject(request.error);
-                    request.onsuccess = () => {
-                        this.db = request.result;
-                        resolve();
-                    };
-
-                    request.onupgradeneeded = (event) => {
-                        const db = event.target.result;
-                        
-                        if (!db.objectStoreNames.contains('photos')) {
-                            const photoStore = db.createObjectStore('photos', { keyPath: 'id', autoIncrement: true });
-                            photoStore.createIndex('album', 'album', { unique: false });
-                            photoStore.createIndex('timestamp', 'timestamp', { unique: false });
-                        }
-
-                        if (!db.objectStoreNames.contains('albums')) {
-                            db.createObjectStore('albums', { keyPath: 'name' });
-                        }
-                    };
-                });
-            }
-
-            async savePhoto(encryptedPhoto, thumbnail, metadata) {
-                const transaction = this.db.transaction(['photos'], 'readwrite');
-                const store = transaction.objectStore('photos');
-                
-                return new Promise((resolve, reject) => {
-                    const request = store.add({
-                        data: encryptedPhoto,
-                        thumbnail: thumbnail,
-                        metadata: metadata,
-                        album: metadata.album || 'default',
-                        timestamp: Date.now()
-                    });
-
-                    request.onsuccess = () => resolve(request.result);
-                    request.onerror = () => reject(request.error);
-                });
-            }
-
-            async getPhotos(album = 'all') {
-                const transaction = this.db.transaction(['photos'], 'readonly');
-                const store = transaction.objectStore('photos');
-                
-                return new Promise((resolve, reject) => {
-                    let request;
-                    
-                    if (album === 'all') {
-                        request = store.getAll();
-                    } else {
-                        const index = store.index('album');
-                        request = index.getAll(album);
-                    }
-
-                    request.onsuccess = () => resolve(request.result);
-                    request.onerror = () => reject(request.error);
-                });
-            }
-
-            async deletePhoto(id) {
-                const transaction = this.db.transaction(['photos'], 'readwrite');
-                const store = transaction.objectStore('photos');
-                
-                return new Promise((resolve, reject) => {
-                    const request = store.delete(id);
-                    request.onsuccess = () => resolve();
-                    request.onerror = () => reject(request.error);
-                });
-            }
-
-            async saveAlbum(name) {
-                const transaction = this.db.transaction(['albums'], 'readwrite');
-                const store = transaction.objectStore('albums');
-                
-                return new Promise((resolve, reject) => {
-                    const request = store.add({ name: name, created: Date.now() });
-                    request.onsuccess = () => resolve();
-                    request.onerror = () => reject(request.error);
-                });
-            }
-
-            async getAlbums() {
-                const transaction = this.db.transaction(['albums'], 'readonly');
-                const store = transaction.objectStore('albums');
-                
-                return new Promise((resolve, reject) => {
-                    const request = store.getAll();
-                    request.onsuccess = () => resolve(request.result.map(album => album.name));
-                    request.onerror = () => reject(request.error);
-                });
-            }
-        }
-
-        // Main application
-        class PhotoManager {
-            constructor() {
-                this.encryption = new EncryptionManager();
-                this.db = new DatabaseManager();
-                this.currentAlbum = 'all';
-                this.photos = [];
-            }
-
-            async init() {
-                await this.db.init();
-                await this.updateAlbumsList();
-                await this.updateStats();
-            }
-
-            async authenticate(password) {
-                try {
-                    // Derive key from password (we'll use a fixed salt for demo purposes)
-                    const salt = new TextEncoder().encode('fixed-salt-for-demo'); // In production, use random salt
-                    const key = await this.encryption.deriveKey(password, salt);
-                    this.encryption.setKey(key);
-                    
-                    // Test encryption/decryption to verify password
-                    const testData = new TextEncoder().encode('test');
-                    const encrypted = await this.encryption.encryptData(testData);
-                    await this.encryption.decryptData(encrypted);
-                    
-                    return true;
-                } catch (error) {
-                    return false;
-                }
-            }
-
-            async addPhoto(file, album = 'default') {
-                try {
-                    // Read file as array buffer
-                    const arrayBuffer = await file.arrayBuffer();
-                    
-                    // Encrypt the photo
-                    const encrypted = await this.encryption.encryptData(arrayBuffer);
-                    
-                    // Create thumbnail
-                    const thumbnail = await this.createThumbnail(file);
-                    const encryptedThumbnail = await this.encryption.encryptData(thumbnail);
-                    
-                    // Save to database
-                    const metadata = {
-                        name: file.name,
-                        type: file.type,
-                        size: file.size,
-                        album: album,
-                        uploadDate: new Date().toISOString()
-                    };
-                    
-                    await this.db.savePhoto(encrypted, encryptedThumbnail, metadata);
-                    return true;
-                } catch (error) {
-                    console.error('Error adding photo:', error);
-                    return false;
-                }
-            }
-
-            async createThumbnail(file) {
-                return new Promise((resolve) => {
-                    const img = new Image();
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    
-                    img.onload = () => {
-                        const maxSize = 200;
-                        let width = img.width;
-                        let height = img.height;
-                        
-                        if (width > height) {
-                            if (width > maxSize) {
-                                height *= maxSize / width;
-                                width = maxSize;
-                            }
-                        } else {
-                            if (height > maxSize) {
-                                width *= maxSize / height;
-                                height = maxSize;
-                            }
-                        }
-                        
-                        canvas.width = width;
-                        canvas.height = height;
-                        ctx.drawImage(img, 0, 0, width, height);
-                        
-                        canvas.toBlob((blob) => {
-                            blob.arrayBuffer().then(resolve);
-                        }, 'image/jpeg', 0.7);
-                    };
-                    
-                    img.src = URL.createObjectURL(file);
-                });
-            }
-
-            async loadPhotos(album = 'all') {
-                try {
-                    const encryptedPhotos = await this.db.getPhotos(album);
-                    const decryptedPhotos = [];
-                    
-                    for (const photo of encryptedPhotos) {
-                        try {
-                            const decryptedData = await this.encryption.decryptData(photo.data);
-                            const decryptedThumbnail = await this.encryption.decryptData(photo.thumbnail);
-                            
-                            decryptedPhotos.push({
-                                id: photo.id,
-                                url: URL.createObjectURL(new Blob([decryptedData], { type: photo.metadata.type })),
-                                thumbnailUrl: URL.createObjectURL(new Blob([decryptedThumbnail], { type: 'image/jpeg' })),
-                                metadata: photo.metadata
-                            });
-                        } catch (error) {
-                            console.error('Error decrypting photo:', error);
-                        }
-                    }
-                    
-                    this.photos = decryptedPhotos;
-                    return decryptedPhotos;
-                } catch (error) {
-                    console.error('Error loading photos:', error);
-                    return [];
-                }
-            }
-
-            async deletePhoto(id) {
-                try {
-                    await this.db.deletePhoto(id);
-                    return true;
-                } catch (error) {
-                    console.error('Error deleting photo:', error);
-                    return false;
-                }
-            }
-
-            async createAlbum(name) {
-                try {
-                    await this.db.saveAlbum(name);
-                    await this.updateAlbumsList();
-                    return true;
-                } catch (error) {
-                    console.error('Error creating album:', error);
-                    return false;
-                }
-            }
-
-            async updateAlbumsList() {
-                const albums = await this.db.getAlbums();
-                const select = document.getElementById('albumSelect');
-                
-                // Clear existing options except "All Photos"
-                while (select.options.length > 1) {
-                    select.remove(1);
-                }
-                
-                // Add album options
-                albums.forEach(album => {
-                    const option = document.createElement('option');
-                    option.value = album;
-                    option.textContent = album;
-                    select.appendChild(option);
-                });
-            }
-
-            async updateStats() {
-                try {
-                    const photos = await this.db.getPhotos('all');
-                    const albums = await this.db.getAlbums();
-                    
-                    let totalSize = 0;
-                    photos.forEach(photo => {
-                        totalSize += photo.metadata.size;
-                    });
-                    
-                    document.getElementById('totalPhotos').textContent = photos.length;
-                    document.getElementById('totalAlbums').textContent = albums.length + 1; // +1 for "All Photos"
-                    document.getElementById('storageUsed').textContent = (totalSize / 1024 / 1024).toFixed(1) + ' MB';
-                } catch (error) {
-                    console.error('Error updating stats:', error);
-                }
-            }
-
-            async exportPhotos() {
-                try {
-                    const photos = await this.db.getPhotos('all');
-                    const exportData = {
-                        photos: [],
-                        exportDate: new Date().toISOString(),
-                        version: '1.0'
-                    };
-                    
-                    for (const photo of photos) {
-                        const decryptedData = await this.encryption.decryptData(photo.data);
-                        exportData.photos.push({
-                            data: Array.from(new Uint8Array(decryptedData)),
-                            metadata: photo.metadata
-                        });
-                    }
-                    
-                    const jsonString = JSON.stringify(exportData, null, 2);
-                    const blob = new Blob([jsonString], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `photo-backup-${new Date().toISOString().split('T')[0]}.json`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    
-                    return true;
-                } catch (error) {
-                    console.error('Error exporting photos:', error);
-                    return false;
-                }
-            }
-        }
-
-        // Global instance
-        let photoManager;
-
-        // Authentication functions
-        async function authenticate() {
-            const password = document.getElementById('password').value;
-            if (!password) {
-                showMessage('authMessage', 'Please enter a password', 'error');
-                return;
-            }
-
-            photoManager = new PhotoManager();
-            await photoManager.init();
-
-            const isAuthenticated = await photoManager.authenticate(password);
-            
-            if (isAuthenticated) {
-                document.getElementById('authSection').style.display = 'none';
-                document.getElementById('mainApp').style.display = 'block';
-                await loadPhotos();
-                showMessage('message', '🔓 Vault unlocked successfully!', 'success');
-            } else {
-                showMessage('authMessage', '❌ Invalid password. Please try again.', 'error');
-            }
-        }
-
-        function logout() {
-            document.getElementById('authSection').style.display = 'block';
-            document.getElementById('mainApp').style.display = 'none';
-            document.getElementById('password').value = '';
-            photoManager = null;
-        }
-
-        // Photo management functions
-        async function handlePhotoUpload(event) {
-            const files = event.target.files;
-            if (files.length === 0) return;
-
-            const album = document.getElementById('albumSelect').value;
-            let successCount = 0;
-
-            showMessage('message', `📤 Encrypting and uploading ${files.length} photos...`, 'success');
-
-            for (let file of files) {
-                const success = await photoManager.addPhoto(file, album === 'all' ? 'default' : album);
-                if (success) successCount++;
-            }
-
-            showMessage('message', `✅ Successfully encrypted and stored ${successCount}/${files.length} photos`, 'success');
-            await loadPhotos();
-            await photoManager.updateStats();
-            
-            // Reset file input
-            event.target.value = '';
-        }
-
-        async function loadPhotos() {
-            const album = document.getElementById('albumSelect').value;
-            const photos = await photoManager.loadPhotos(album);
-            
-            const grid = document.getElementById('photoGrid');
-            grid.innerHTML = '';
-
-            if (photos.length === 0) {
-                grid.innerHTML = '<div class="loading">No photos found. Add some photos to get started!</div>';
-                return;
-            }
-
-            photos.forEach(photo => {
-                const item = document.createElement('div');
-                item.className = 'photo-item';
-                item.innerHTML = `
-                    <img src="${photo.thumbnailUrl}" alt="${photo.metadata.name}" onclick="viewPhoto('${photo.url}')">
-                    <button class="delete-btn" onclick="deletePhoto(${photo.id})" title="Delete photo">×</button>
-                `;
-                grid.appendChild(item);
-            });
-        }
-
-        function viewPhoto(url) {
-            document.getElementById('modalImage').src = url;
-            document.getElementById('photoModal').style.display = 'block';
-        }
-
-        function closeModal() {
-            document.getElementById('photoModal').style.display = 'none';
-        }
-
-        async function deletePhoto(id) {
-            if (!confirm('Are you sure you want to delete this photo? This action cannot be undone.')) {
-                return;
-            }
-
-            const success = await photoManager.deletePhoto(id);
-            if (success) {
-                showMessage('message', '✅ Photo deleted successfully', 'success');
-                await loadPhotos();
-                await photoManager.updateStats();
-            } else {
-                showMessage('message', '❌ Error deleting photo', 'error');
-            }
-        }
-
-        async function createAlbum() {
-            const name = prompt('Enter album name:');
-            if (!name) return;
-
-            const success = await photoManager.createAlbum(name);
-            if (success) {
-                showMessage('message', `✅ Album "${name}" created successfully`, 'success');
-            } else {
-                showMessage('message', '❌ Error creating album', 'error');
-            }
-        }
-
-        async function exportPhotos() {
-            showMessage('message', '📦 Preparing export... This may take a while for large collections.', 'success');
-            
-            const success = await photoManager.exportPhotos();
-            if (success) {
-                showMessage('message', '✅ Export completed successfully!', 'success');
-            } else {
-                showMessage('message', '❌ Error during export', 'error');
-            }
-        }
-
-        // Utility functions
-        function showMessage(elementId, message, type) {
-            const element = document.getElementById(elementId);
-            element.className = type;
-            element.textContent = message;
-            element.style.display = 'block';
-            
-            setTimeout(() => {
-                element.style.display = 'none';
-            }, 5000);
-        }
-
-        // Event listeners
-        document.getElementById('password').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                authenticate();
-            }
-        });
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('photoModal');
-            if (event.target === modal) {
-                closeModal();
-            }
-        }
-    </script>
-</body>
+<html lang="en" dir="ltr">
+   <head>
+      <title>arsenobetaine</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+      <meta name="description" content="arsenobetaine">
+   </head>
+   <body>
+      <div class="content">
+         <h2 class="text" data-text="arsenobetaine">
+            arsenobetaine
+         </h2>
+      </div>
+      <a rel="me" href="https://c.im/@soleimani">Mastodon</a>
+   </body>
 </html>
+
+<style>
+  @import url('https://fonts.googleapis.com/css?family=Poppins:400,500,600,700&display=swap');
+*{
+  margin: 0;
+  padding: 0;
+  font-family: 'Poppins', sans-serif;
+}
+body, html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: black;
+}
+.content{
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.content .text{
+  position: relative;
+  color: #fff;
+  font-weight: 700;
+  font-size: 45px;
+  transform: scale(2);
+  padding: 30px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.content .text:before,
+.content .text:after {
+  padding: 30px;
+  color: white;
+  content: attr(data-text);
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: black;
+  overflow: hidden;
+  top: 0;
+}
+.content .text:before{
+  left: 3px;
+  text-shadow: -2px 0 red;
+  animation: glitch-1 2s linear infinite reverse;
+}
+.content .text:after{
+  left: -3px;
+  text-shadow: -2px 0 blue;
+  animation: glitch-2 2s linear infinite reverse;
+}
+@keyframes glitch-1 {
+  0% {
+    clip: rect(132px, auto, 101px, 30px);
+  }
+  5% {
+    clip: rect(17px, auto, 94px, 30px);
+  }
+  10% {
+    clip: rect(40px, auto, 66px, 30px);
+  }
+  15% {
+    clip: rect(87px, auto, 82px, 30px);
+  }
+  20% {
+    clip: rect(137px, auto, 61px, 30px);
+  }
+  25% {
+    clip: rect(34px, auto, 14px, 30px);
+  }
+  30% {
+    clip: rect(133px, auto, 74px, 30px);
+  }
+  35% {
+    clip: rect(76px, auto, 107px, 30px);
+  }
+  40% {
+    clip: rect(59px, auto, 130px, 30px);
+  }
+  45% {
+    clip: rect(29px, auto, 84px, 30px);
+  }
+  50% {
+    clip: rect(22px, auto, 67px, 30px);
+  }
+  55% {
+    clip: rect(67px, auto, 62px, 30px);
+  }
+  60% {
+    clip: rect(10px, auto, 105px, 30px);
+  }
+  65% {
+    clip: rect(78px, auto, 115px, 30px);
+  }
+  70% {
+    clip: rect(105px, auto, 13px, 30px);
+  }
+  75% {
+    clip: rect(15px, auto, 75px, 30px);
+  }
+  80% {
+    clip: rect(66px, auto, 39px, 30px);
+  }
+  85% {
+    clip: rect(133px, auto, 73px, 30px);
+  }
+  90% {
+    clip: rect(36px, auto, 128px, 30px);
+  }
+  95% {
+    clip: rect(68px, auto, 103px, 30px);
+  }
+  100% {
+    clip: rect(14px, auto, 100px, 30px);
+  }
+}
+@keyframes glitch-2 {
+  0% {
+    clip: rect(129px, auto, 36px, 30px);
+  }
+  5% {
+    clip: rect(36px, auto, 4px, 30px);
+  }
+  10% {
+    clip: rect(85px, auto, 66px, 30px);
+  }
+  15% {
+    clip: rect(91px, auto, 91px, 30px);
+  }
+  20% {
+    clip: rect(148px, auto, 138px, 30px);
+  }
+  25% {
+    clip: rect(38px, auto, 122px, 30px);
+  }
+  30% {
+    clip: rect(69px, auto, 54px, 30px);
+  }
+  35% {
+    clip: rect(98px, auto, 71px, 30px);
+  }
+  40% {
+    clip: rect(146px, auto, 34px, 30px);
+  }
+  45% {
+    clip: rect(134px, auto, 43px, 30px);
+  }
+  50% {
+    clip: rect(102px, auto, 80px, 30px);
+  }
+  55% {
+    clip: rect(119px, auto, 44px, 30px);
+  }
+  60% {
+    clip: rect(106px, auto, 99px, 30px);
+  }
+  65% {
+    clip: rect(141px, auto, 74px, 30px);
+  }
+  70% {
+    clip: rect(20px, auto, 78px, 30px);
+  }
+  75% {
+    clip: rect(133px, auto, 79px, 30px);
+  }
+  80% {
+    clip: rect(78px, auto, 52px, 30px);
+  }
+  85% {
+    clip: rect(35px, auto, 39px, 30px);
+  }
+  90% {
+    clip: rect(67px, auto, 70px, 30px);
+  }
+  95% {
+    clip: rect(71px, auto, 103px, 30px);
+  }
+  100% {
+    clip: rect(83px, auto, 40px, 30px);
+  }
+}
+</style>
